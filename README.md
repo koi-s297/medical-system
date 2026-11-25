@@ -1,10 +1,12 @@
 # 医疗系统 Hello World
 
-Java Web 开发课程 · 实验一：开发环境搭建与医疗系统 Hello World。
+Java Web 开发课程 · 实验一：开发环境搭建与医疗系统 Hello World；
+实验二：医疗系统数据库设计与基础 CRUD（在实验一工程上继续开发）。
 
 本项目完成 JDK / Maven / MySQL / IDEA 全套开发环境配置、Git 仓库与分支规范、
 Spring Boot 项目创建、标准目录分层初始化，以及一个可本地访问的测试接口；
 并补充 Node / Vue 3 + Vite 前端静态页面 Demo、MyBatis 与 MySQL 数据源依赖配置。
+实验二进一步完成 5 张第三范式业务表、MyBatis-Plus 代码生成器与科室/医生/患者三套 CRUD 接口。
 
 ## 一、开发环境
 
@@ -18,7 +20,9 @@ Spring Boot 项目创建、标准目录分层初始化，以及一个可本地�
 | 项目编码 | UTF-8（Global / Project / properties 三处统一） |
 | Node.js | 22.22.2（npm 10.9.7，registry 使用 npmmirror 镜像） |
 | 前端框架 | Vue 3.5.44 + Vite 8.3.6，工程位于 `frontend/` |
-| 持久层 | `mybatis-spring-boot-starter` 4.1.0（Spring Boot 4 需用 4.x） |
+| 持久层（实验一） | `mybatis-spring-boot-starter` 4.1.0（Spring Boot 4 需用 4.x） |
+| 持久层（实验二） | `mybatis-plus-spring-boot4-starter` 3.5.18 + `mybatis-plus-jsqlparser` 3.5.18 + `mybatis-plus-generator` 3.5.18 |
+| 参数校验 | `spring-boot-starter-validation`（Jakarta Bean Validation） |
 | MySQL 驱动 | `mysql-connector-j` 9.7.0（版本由 Boot 4.1.2 BOM 管理） |
 | 版本控制 | Git，远程仓库 GitHub `koi-s297/medical-system` |
 
@@ -90,22 +94,24 @@ npm run dev
 
 ### MyBatis 与数据源配置
 
-`pom.xml` 引入 `mybatis-spring-boot-starter:4.1.0`（已自带 JDBC，
-无需另加 `spring-boot-starter-jdbc`）与 `mysql-connector-j`（版本由 Boot BOM 管理）。
-`application.properties` 配置数据源与 MyBatis 基础项：
+实验一引入 `mybatis-spring-boot-starter:4.1.0`（已自带 JDBC）与 `mysql-connector-j`；
+实验二将其替换为 MyBatis-Plus，前缀也由 `mybatis.*` 改为 `mybatis-plus.*`：
 
 ```properties
 spring.datasource.url=jdbc:mysql://localhost:3306/medical_system?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
 spring.datasource.username=root
 spring.datasource.password=${MYSQL_PASSWORD:}
 spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
-mybatis.type-aliases-package=com.example.medicalsystem.entity
-mybatis.configuration.map-underscore-to-camel-case=true
+mybatis-plus.type-aliases-package=com.example.medicalsystem.entity
+mybatis-plus.configuration.map-underscore-to-camel-case=true
+mybatis-plus.configuration.log-impl=org.apache.ibatis.logging.stdout.StdOutImpl
+mybatis-plus.global-config.db-config.id-type=auto
 ```
 
 密码使用环境变量占位，不写入仓库；需要实际连接数据库时，启动前设置
 `$env:MYSQL_PASSWORD="..."`（PowerShell）或在 IDEA Run Configuration 中配置环境变量。
-本实验**只做依赖与配置，不建表、不写 Mapper、不执行查询**，后端接口行为保持不变。
+实验一只做依赖与配置、不建表不写 Mapper；实验二已建表并接入 MyBatis-Plus，
+控制台会打印带 `?` 占位符的 SQL，可直接作为「参数绑定防注入」的证据。
 
 ## 四、Git 规范
 
@@ -115,4 +121,136 @@ mybatis.configuration.map-underscore-to-camel-case=true
   `fix:` 修复、`chore:` 构建与配置。
 
 实验一完成前后端环境搭建、Vue 静态首页 Demo 与 MyBatis 依赖配置；
-患者管理等业务功能、建表与 Mapper 开发留待后续实验。`main` 与 `dev` 均已同步至最新提交。
+实验二完成 5 张业务表、MyBatis-Plus 代码生成器与三套基础 CRUD 接口；
+药品明细拆表、前端联调等业务功能留待后续实验。
+
+## 五、实验二：数据库设计与基础 CRUD
+
+### 5.1 表结构（第三范式）
+
+`sql/schema.sql` 可直接重复执行，含 5 张表与测试数据：
+
+| 表 | 说明 | 关键约束 |
+| --- | --- | --- |
+| `department` | 科室 | 主键；`dept_code`、`dept_name` 唯一 |
+| `doctor` | 医生 | 主键；工号 / 身份证 / 手机号唯一；`dept_id` 外键 → 科室 |
+| `patient` | 患者 | 主键；就诊卡号 / 身份证 / 手机号唯一 |
+| `registration` | 挂号记录 | 主键；`patient_id`、`doctor_id` 外键；挂号单号唯一 |
+| `prescription` | 电子处方 | 主键；`registration_id` 外键；处方编号唯一 |
+
+三范式要点：所有字段均为原子值；非主属性完全依赖主键；
+挂号表只存 `patient_id` / `doctor_id`，不冗余患者姓名、医生姓名与科室名称
+（科室由 `doctor.dept_id` 推导），消除传递依赖与更新异常。
+药品明细属多值属性，严格建模应独立成第 6 张表，本实验按大纲要求保持 5 个实体。
+
+### 5.2 目录增补
+
+```text
+src/main/java/com/example/medicalsystem/
+├── common/         R 统一响应、GlobalExceptionHandler 中文异常提示
+├── config/         MybatisPlusConfig 分页插件
+├── controller/     Department/Doctor/PatientController（手写）
+├── dto/            三个请求对象，@Pattern 校验手机号与身份证
+├── entity/         5 张表实体（由生成器产出）
+├── mapper/         BaseMapper 接口 + resources/mapper/*.xml
+├── service/        IService 接口与实现（由生成器产出）
+└── generator/      CodeGenerator（一次性工具，不参与运行时）
+```
+
+### 5.3 运行顺序
+
+1. 在 Navicat / IDEA Database 执行 `sql/schema.sql`；
+2. 设置环境变量 `MYSQL_PASSWORD`（本机 MySQL root 密码），不写入配置文件；
+3. 运行 `generator.CodeGenerator.main()`，一键生成 5 张表的 entity / mapper / service；
+4. `mvn clean compile`，启动 `MedicalSystemApplication`；
+5. 按 `docs/api-test.md` 逐个验证接口。
+
+> 版本坑：Spring Boot 4 必须用 `mybatis-plus-spring-boot4-starter`，
+> 老教程的 `mybatis-plus-boot-starter` / `boot3-starter` 自动配置不加载；
+> 3.5.18 起 `PaginationInnerInterceptor` 拆到 `mybatis-plus-jsqlparser`，
+> `IService` / `ServiceImpl` 拆到 `mybatis-plus-spring` 包
+> （`com.baomidou.mybatisplus.spring.service.*`），缺依赖或沿用旧包名会编译失败。
+
+### 5.4 接口清单
+
+三套接口路径为 `/api/departments`、`/api/doctors`、`/api/patients`：
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `?current=1&size=5&name=...` | 多条件组合分页查询，返回 `records` + `total` |
+| POST | `/` | 新增，`@Validated` 校验请求体 |
+| PUT | `/{id}` | 修改 |
+| DELETE | `/{id}` | 删除（外键引用时返回中文提示） |
+
+统一返回 `{"code":200,"msg":"success","data":...}`；校验失败返回 400 与中文字段提示，
+唯一键冲突返回 409。
+
+### 5.5 参数校验与防注入
+
+手机号 `^1[3-9]\d{9}$`、身份证 `^\d{17}[\dXx]$` 由 `jakarta.validation` 的
+`@Pattern` 在 DTO 上声明，异常由全局处理器转成中文响应，
+避免脏数据进入医疗档案、也避免英文堆栈外泄。
+
+查询条件全部通过 `LambdaQueryWrapper` 动态拼装，底层使用 `#{}` 参数绑定，
+等价于 `PreparedStatement` 的 `?` 占位符；项目未使用任何 `${}` 字符串拼接。
+传入 `' OR 1=1 --` 只会被当作普通姓名值，返回空结果而非全表数据。
+
+---
+
+## 六、实验三：业务逻辑与事务处理
+
+在实验二 5 张表基础上扩展，实现医生排班管理、在线挂号、开处方三类核心业务，
+用声明式事务保证号源与库存扣减的原子性，并完善业务异常提示。
+
+### 6.1 增量建表
+
+执行 `sql/schema-exp3.sql`（在实验二 `schema.sql` 之后）：
+
+| 新表 | 作用 |
+| --- | --- |
+| `doctor_schedule` | 医生排班，含总号源 / 剩余号源，是号源扣减的载体 |
+| `medicine` | 药品，含库存数量，是库存扣减的载体 |
+| `prescription_item` | 处方明细，拆出"处方—药品"多对多关系 |
+
+`registration` 追加 `schedule_id` 外键与 `(patient_id, schedule_id)` 唯一键，
+后者用于数据库层面兜底防重复挂号。
+
+### 6.2 分层结构
+
+```
+controller/  只收参数、封装 R 响应
+  └─ service/biz/   业务编排 + @Transactional 事务边界
+       └─ service/   基础单表服务（IService）
+            └─ mapper/    单表读写 + 带条件 UPDATE
+```
+
+业务逻辑集中在 `service/biz`，Controller 保持很薄，体现高内聚低耦合。
+
+### 6.3 事务与防超卖
+
+- `RegistrationBizService.register()`：查排班 → 防重复 → 扣号源 → 写挂号单，
+  四步同处一个 `@Transactional`；
+- `PrescriptionBizService.issue()`：写处方 → 逐项扣库存 → 写明细，任一步失败整体回滚；
+- 扣号源 / 扣库存用**带条件 UPDATE**（`WHERE remaining > 0` / `stock >= 数量`），
+  受影响行数为 0 即判定"号源已满 / 库存不足"，同时避免并发超卖。
+
+### 6.4 三类业务异常
+
+`BusinessException` 携带状态码，由 `GlobalExceptionHandler` 转成中文响应：
+- 重复挂号 → 409 `重复挂号：该患者已预约过此排班`
+- 号源已满 → 409 `号源已满，请选择其他排班`
+- 库存不足 → 409 `库存不足：<药品名>，当前仅剩 N 件`
+
+### 6.5 事务回滚演示
+
+`RegisterReq` / `PrescriptionReq` 可带 `"simulateFail": true`：
+业务层在扣减后故意抛异常，用来现场验证事务回滚——
+号源 / 库存与已写数据都应恢复原状。测试脚本见 `docs/api-test-exp3.http`。
+
+### 6.6 轻量前端联调
+
+`frontend/src/App.vue` 在实验一静态页上加了"在线挂号"演示区，
+用原生 `fetch` 调用 `/api/registration/book`，把后端 `code` / `msg` 友好展示出来；
+`vite.config.js` 配 `/api` 代理到 8080 解决本地跨域（完整 CORS 配置留待实验五）。
+
+启动顺序：先起后端 8080，再在 `frontend/` 执行 `npm run dev`，访问 Vite 提示的地址。

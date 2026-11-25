@@ -31,3 +31,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### 本地数据库密码（不提交到 Public 仓库）###
+sql/.db-password
+**/.env
+**/.env.local

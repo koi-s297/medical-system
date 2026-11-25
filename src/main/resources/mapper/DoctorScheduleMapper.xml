@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.medicalsystem.mapper.DoctorScheduleMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.medicalsystem.entity.DoctorSchedule">
+        <id column="id" property="id" />
+        <result column="doctor_id" property="doctorId" />
+        <result column="work_date" property="workDate" />
+        <result column="time_slot" property="timeSlot" />
+        <result column="total_quota" property="totalQuota" />
+        <result column="remaining" property="remaining" />
+        <result column="fee" property="fee" />
+        <result column="status" property="status" />
+        <result column="created_at" property="createdAt" />
+        <result column="updated_at" property="updatedAt" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, doctor_id, work_date, time_slot, total_quota, remaining, fee, status, created_at, updated_at
+    </sql>
+
+    <!-- 带条件扣号源：WHERE 里带 remaining > 0，UPDATE 天然行锁，防并发超卖 -->
+    <update id="deductQuota">
+        UPDATE doctor_schedule SET remaining = remaining - 1,
+               updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND remaining &gt; 0 AND status = 1
+    </update>
+
+</mapper>

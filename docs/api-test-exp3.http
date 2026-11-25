@@ -1,0 +1,110 @@
+### 实验三 · 业务逻辑与事务测试脚本
+### 用法：IDEA 打开本文件，每条请求左侧绿色三角依次点击
+### 前置：先执行 sql/schema-exp3.sql，再启动应用（端口 8080）
+### 变量：患者 id 用已有的 1~12；排班 / 药品 id 查库确认
+### 说明：simulateFail=true 用于演示事务回滚（故意抛异常）
+
+@base = http://localhost:8080
+@patientId = 9
+@scheduleId = 1
+@regId = 1
+@medA = 1
+@medB = 2
+
+### 00 健康检查（先确认服务活着）
+GET {{base}}/api/hello
+
+### 01 排班分页（查可用排班，作为挂号依据）
+GET {{base}}/api/schedules?current=1&size=10&doctorId=1
+
+### 02 药品分页（查库存，medB=2  vitaminC 初始库存仅 3）
+GET {{base}}/api/medicines?current=1&size=10
+
+### 03 【挂号成功】正常挂号，扣减 1 个号源
+POST {{base}}/api/registration/book
+Content-Type: application/json
+
+{
+  "patientId": {{patientId}},
+  "scheduleId": {{scheduleId}},
+  "symptom": "咳嗽两天"
+}
+
+### 04 【重复挂号】同一患者再挂同一排班 → 409 中文提示
+POST {{base}}/api/registration/book
+Content-Type: application/json
+
+{
+  "patientId": {{patientId}},
+  "scheduleId": {{scheduleId}},
+  "symptom": "重复测试"
+}
+
+### 05 【号源已满】把排班 3 号连挂 3 次后第 4 次 → 409 "号源已满"
+### 先手动把 @scheduleId 改成 4（总号源 3），连点本条 4 次
+POST {{base}}/api/registration/book
+Content-Type: application/json
+
+{
+  "patientId": 10,
+  "scheduleId": 4,
+  "symptom": "号源测试"
+}
+
+### 06 【事务回滚-挂号】simulateFail=true：扣号源后抛异常
+### 观察：本条报错，但排班 1 的 remaining 应保持不变（事务回滚）
+POST {{base}}/api/registration/book
+Content-Type: application/json
+
+{
+  "patientId": 11,
+  "scheduleId": 1,
+  "symptom": "回滚测试",
+  "simulateFail": true
+}
+
+### 07 回滚验证 SQL（在数据库工具执行：排班 1 remaining 未被扣）
+### SELECT id, total_quota, remaining FROM doctor_schedule WHERE id = 1;
+
+### 08 【开处方成功】挂号 1 开方，扣 A 药 2 盒
+POST {{base}}/api/prescriptions/issue
+Content-Type: application/json
+
+{
+  "registrationId": {{regId}},
+  "diagnosis": "急性上呼吸道感染",
+  "advice": "多饮水，按时复诊",
+  "items": [
+    { "medicineId": {{medA}}, "quantity": 2 }
+  ]
+}
+
+### 09 【库存不足】一次开 999 盒 → 409 "库存不足"，整单回滚
+POST {{base}}/api/prescriptions/issue
+Content-Type: application/json
+
+{
+  "registrationId": {{regId}},
+  "diagnosis": "库存测试",
+  "items": [
+    { "medicineId": {{medB}}, "quantity": 999 }
+  ]
+}
+
+### 10 【事务回滚-处方】simulateFail=true：扣库存后抛异常
+### 观察：本条报错，但药品 1 的 stock 与处方数据都应恢复（事务回滚）
+POST {{base}}/api/prescriptions/issue
+Content-Type: application/json
+
+{
+  "registrationId": {{regId}},
+  "diagnosis": "回滚测试",
+  "items": [
+    { "medicineId": {{medA}}, "quantity": 1 }
+  ],
+  "simulateFail": true
+}
+
+### 11 回滚验证 SQL（药品 1 库存未变、未产生多余处方）
+### SELECT id, name, stock FROM medicine WHERE id = 1;
+### SELECT COUNT(*) FROM prescription WHERE diagnosis = '回滚测试';

@@ -14,6 +14,33 @@ const envs = [
   ['构建工具', 'Maven 3.9.11'],
   ['JDK', 'Azul Zulu 17'],
 ]
+
+// ---- 实验三：在线挂号 + 友好提示（原生 fetch，不引入额外库） ----
+import { ref } from 'vue'
+const form = ref({ patientId: '', scheduleId: '', symptom: '' })
+const result = ref(null)   // { ok, msg }
+
+async function submitRegister() {
+  result.value = null
+  try {
+    const resp = await fetch('/api/registration/book', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        patientId: Number(form.value.patientId),
+        scheduleId: Number(form.value.scheduleId),
+        symptom: form.value.symptom,
+      }),
+    })
+    const data = await resp.json()
+    // 后端统一返回 code/msg：200 成功，其余把中文 msg 显示出来
+    result.value = { ok: data.code === 200, msg: data.code === 200
+      ? '挂号成功，单号已生成（编号 ' + data.data + '）'
+      : data.msg }
+  } catch (e) {
+    result.value = { ok: false, msg: '无法连接后端服务，请确认 8080 已启动' }
+  }
+}
 </script>
 
 <template>
@@ -39,6 +66,25 @@ const envs = [
         <table>
           <tr v-for="e in envs" :key="e[0]"><td>{{ e[0] }}</td><td>{{ e[1] }}</td></tr>
         </table>
+
+        <!-- 实验三：在线挂号演示，重点展示后端的友好中文提示 -->
+        <h2>在线挂号（实验三 · 事务与异常演示）</h2>
+        <div class="reg-box">
+          <div class="reg-row">
+            <label>患者编号</label>
+            <input v-model="form.patientId" placeholder="如 1" />
+            <label>排班编号</label>
+            <input v-model="form.scheduleId" placeholder="如 1" />
+          </div>
+          <div class="reg-row">
+            <label>主诉</label>
+            <input v-model="form.symptom" placeholder="如 咳嗽两天" />
+            <button @click="submitRegister">提交挂号</button>
+          </div>
+          <p v-if="result" class="reg-msg" :class="result.ok ? 'ok' : 'err'">{{ result.msg }}</p>
+          <p class="reg-tip">提示：重复挂号、号源已满时，这里会显示后端返回的中文原因，而不是报错堆栈。</p>
+        </div>
+
         <h2>公告</h2>
         <ul class="news">
           <li>已完成 JDK、Maven、MySQL、IDEA 环境搭建与验证</li>
@@ -78,5 +124,15 @@ td { padding: 11px 16px; border-bottom: 1px solid #eef2f7; font-size: 14px; }
 td:first-child { width: 180px; color: #6b7280; }
 .news { background: #fff; border-radius: 10px; padding: 16px 16px 16px 36px; margin: 0; box-shadow: 0 2px 10px rgba(20,50,100,.06); }
 .news li { padding: 6px 0; font-size: 14px; color: #4b5563; }
+.reg-box { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(20,50,100,.06); }
+.reg-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.reg-row label { width: 72px; font-size: 14px; color: #6b7280; }
+.reg-row input { flex: 1; padding: 8px 10px; border: 1px solid #d7dfeb; border-radius: 6px; font-size: 14px; }
+.reg-row input:first-of-type { max-width: 130px; }
+.reg-row button { background: #1565d8; color: #fff; border: none; padding: 9px 18px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+.reg-msg { padding: 10px 14px; border-radius: 6px; font-size: 14px; margin: 8px 0; }
+.reg-msg.ok { background: #e7f7ee; color: #15803d; }
+.reg-msg.err { background: #fdeaea; color: #c0392b; }
+.reg-tip { font-size: 12px; color: #9ca3af; margin: 4px 0 0; }
 footer { text-align: center; padding: 16px; color: #9ca3af; font-size: 12px; }
 </style>

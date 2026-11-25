@@ -1,13 +1,16 @@
 package com.example.medicalsystem.service;
 
 import com.example.medicalsystem.entity.Patient;
-
-import java.util.List;
+import com.baomidou.mybatisplus.spring.service.IService;
 
 /**
- * 业务逻辑层：对外提供患者相关业务能力。
+ * <p>
+ * 患者表 服务类
+ * </p>
+ *
+ * @author koi
+ * @since 2026-11-12
  */
-public interface PatientService {
+public interface PatientService extends IService<Patient> {
 
-    List<Patient> listPatients();
 }

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.medicalsystem.mapper.RegistrationMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.example.medicalsystem.entity.Registration">
+        <id column="id" property="id" />
+        <result column="reg_no" property="regNo" />
+        <result column="patient_id" property="patientId" />
+        <result column="doctor_id" property="doctorId" />
+        <result column="schedule_id" property="scheduleId" />
+        <result column="reg_time" property="regTime" />
+        <result column="status" property="status" />
+        <result column="fee" property="fee" />
+        <result column="symptom" property="symptom" />
+        <result column="created_at" property="createdAt" />
+        <result column="updated_at" property="updatedAt" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, reg_no, patient_id, doctor_id, schedule_id, reg_time, status, fee, symptom, created_at, updated_at
+    </sql>
+
+</mapper>

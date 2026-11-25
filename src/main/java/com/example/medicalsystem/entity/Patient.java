@@ -1,45 +1,83 @@
 package com.example.medicalsystem.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
+import java.io.Serializable;
+import java.time.LocalDateTime;
+
 /**
- * 实体层：患者业务对象。
- * 实验一仅完成工程初始化，保留最简字段结构。
+ * <p>
+ * 患者表
+ * </p>
+ *
+ * @author koi
+ * @since 2026-11-12
  */
-public class Patient {
+@Getter
+@Setter
+@ToString
+@TableName("patient")
+public class Patient implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * 患者主键
+     */
+    @TableId(value = "id", type = IdType.AUTO)
     private Long id;
+
+    /**
+     * 就诊卡号
+     */
+    @TableField("patient_no")
+    private String patientNo;
+
+    /**
+     * 姓名
+     */
+    @TableField("name")
     private String name;
-    private Integer age;
 
-    public Patient() {
-    }
+    /**
+     * 身份证号（18 位）
+     */
+    @TableField("id_card")
+    private String idCard;
 
-    public Patient(Long id, String name, Integer age) {
-        this.id = id;
-        this.name = name;
-        this.age = age;
-    }
+    /**
+     * 手机号（11 位）
+     */
+    @TableField("phone")
+    private String phone;
 
-    public Long getId() {
-        return id;
-    }
+    /**
+     * 性别：1-男，2-女
+     */
+    @TableField("gender")
+    private Byte gender;
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    /**
+     * 联系地址
+     */
+    @TableField("address")
+    private String address;
 
-    public String getName() {
-        return name;
-    }
+    /**
+     * 创建时间
+     */
+    @TableField("created_at")
+    private LocalDateTime createdAt;
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public Integer getAge() {
-        return age;
-    }
-
-    public void setAge(Integer age) {
-        this.age = age;
-    }
+    /**
+     * 更新时间
+     */
+    @TableField("updated_at")
+    private LocalDateTime updatedAt;
 }

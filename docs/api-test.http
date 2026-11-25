@@ -1,0 +1,92 @@
+### 实验二接口自测（IDEA 打开本文件，点每行左侧绿色三角即可执行）
+### 前提：已执行 sql/schema.sql，MYSQL_PASSWORD 已设置，应用启动在 8080
+
+### 00 健康检查（实验一接口仍可用）
+GET http://localhost:8080/api/hello
+
+### 01 科室：多条件组合分页（★ 截图）
+GET http://localhost:8080/api/departments?current=1&size=5&deptName=%E7%A7%91
+
+### 02 医生：多条件组合分页（★ 截图：科室 + 职称两个条件同屏）
+GET http://localhost:8080/api/doctors?current=1&size=5&deptId=1&title=%E4%B8%BB%E4%BB%BB%E5%8C%BB%E5%B8%88
+
+### 03 患者：多条件组合分页（name + gender 组合，total=2）
+GET http://localhost:8080/api/patients?current=1&size=5&name=%E4%B8%BD&gender=2
+
+### 04 患者：默认分页（★ 截图：records 5 条 + total=12 + pages=3）
+GET http://localhost:8080/api/patients?current=1&size=5
+
+### 05 新增患者（合法数据，返回 code 200 与新 id）
+POST http://localhost:8080/api/patients
+Content-Type: application/json
+
+{
+  "patientNo": "P0013",
+  "name": "测试患者",
+  "idCard": "430101199001010013",
+  "phone": "13900000013",
+  "gender": 1,
+  "address": "吉首市乾州街道 13 号"
+}
+
+> {%
+    client.global.set("newPatientId", response.body.data);
+%}
+
+### 06 修改患者
+PUT http://localhost:8080/api/patients/{{newPatientId}}
+Content-Type: application/json
+
+{
+  "patientNo": "P0013",
+  "name": "测试患者-已修改",
+  "idCard": "430101199001010013",
+  "phone": "13900000013",
+  "gender": 1,
+  "address": "吉首市乾州街道 13 号"
+}
+
+### 07 删除患者
+DELETE http://localhost:8080/api/patients/{{newPatientId}}
+
+### 08 参数校验：手机号与身份证非法（400 + 中文提示）
+POST http://localhost:8080/api/patients
+Content-Type: application/json
+
+{
+  "patientNo": "P0014",
+  "name": "校验测试",
+  "idCard": "123",
+  "phone": "abc",
+  "gender": 1,
+  "address": ""
+}
+
+### 09 防注入测试：注入串被当作普通姓名值（★ 截图：total=0）
+GET http://localhost:8080/api/patients?name=%27%20OR%201%3D1%20--
+
+### 10 新增科室（可选）
+POST http://localhost:8080/api/departments
+Content-Type: application/json
+
+{
+  "deptCode": "D005",
+  "deptName": "口腔科",
+  "location": "门诊楼 5F",
+  "phone": "0743-8561005",
+  "description": "口腔检查与治疗"
+}
+
+### 11 新增医生（可选，需先有科室）
+POST http://localhost:8080/api/doctors
+Content-Type: application/json
+
+{
+  "deptId": 1,
+  "doctorNo": "DOC007",
+  "name": "测试医生",
+  "idCard": "430101198001010007",
+  "phone": "13800000007",
+  "gender": 1,
+  "title": "主治医师"
+}

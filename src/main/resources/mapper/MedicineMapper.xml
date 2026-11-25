@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.medicalsystem.mapper.MedicineMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.medicalsystem.entity.Medicine">
+        <id column="id" property="id" />
+        <result column="medicine_no" property="medicineNo" />
+        <result column="name" property="name" />
+        <result column="spec" property="spec" />
+        <result column="price" property="price" />
+        <result column="stock" property="stock" />
+        <result column="created_at" property="createdAt" />
+        <result column="updated_at" property="updatedAt" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, medicine_no, name, spec, price, stock, created_at, updated_at
+    </sql>
+
+    <!-- 带条件扣库存：只有库存足够才扣，避免超卖成负数 -->
+    <update id="deductStock">
+        UPDATE medicine SET stock = stock - #{quantity},
+               updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id} AND stock &gt;= #{quantity}
+    </update>
+
+</mapper>

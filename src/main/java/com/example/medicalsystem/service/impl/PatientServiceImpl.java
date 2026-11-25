@@ -1,19 +1,20 @@
 package com.example.medicalsystem.service.impl;
 
 import com.example.medicalsystem.entity.Patient;
+import com.example.medicalsystem.mapper.PatientMapper;
 import com.example.medicalsystem.service.PatientService;
-
-import java.util.Collections;
-import java.util.List;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import org.springframework.stereotype.Service;
 
 /**
- * 业务逻辑层实现：实验一仅作分层占位，暂返回空集合。
- * 不注入数据访问层，避免引入尚未实现的 Bean 依赖。
+ * <p>
+ * 患者表 服务实现类
+ * </p>
+ *
+ * @author koi
+ * @since 2026-11-12
  */
-public class PatientServiceImpl implements PatientService {
+@Service
+public class PatientServiceImpl extends ServiceImpl<PatientMapper, Patient> implements PatientService {
 
-    @Override
-    public List<Patient> listPatients() {
-        return Collections.emptyList();
-    }
 }
